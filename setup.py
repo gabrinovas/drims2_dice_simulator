@@ -1,26 +1,34 @@
 from setuptools import setup
-from glob import glob
 import os
+from glob import glob
 
 package_name = 'drims2_dice_simulator'
 
 setup(
     name=package_name,
-    version='0.0.1',
-    packages=['drims2_dice_simulator'],
-    package_dir={'': '.'},
+    version='0.0.0',
+    packages=[package_name],
     data_files=[
-        ('share/ament_index/resource_index/packages', ['resource/' + package_name]),
+        ('share/ament_index/resource_index/packages',
+            ['resource/' + package_name]),
         ('share/' + package_name, ['package.xml']),
-        ('share/' + package_name + '/launch', glob('launch/*.launch.py')),
-        ('share/' + package_name + '/urdf', glob('urdf/*')),
+        # Install launch files
+        (os.path.join('share', package_name, 'launch'), 
+         glob('launch/*.launch.py')),
+        # Install rviz config
+        (os.path.join('share', package_name, 'rviz'), 
+         glob('rviz/*.rviz')),
+        # Install urdf meshes
+        (os.path.join('share', package_name, 'urdf'), 
+         glob('urdf/*.obj')),
     ],
     install_requires=['setuptools'],
     zip_safe=True,
-    maintainer='Cesare Tonola',
-    maintainer_email='cesare.tonola@cnr.it',
-    description='DRIMS2 Dice Simulator',
+    maintainer='Gabriel Novas',
+    maintainer_email='gabriel.novas@aimen.es',
+    description='Dice spawning and face detection service for research',
     license='MIT',
+    tests_require=['pytest'],
     entry_points={
         'console_scripts': [
             'dice_spawner = drims2_dice_simulator.dice_spawner:main',

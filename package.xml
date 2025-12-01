@@ -3,18 +3,22 @@
 <package format="3">
   <name>drims2_dice_simulator</name>
   <version>0.0.0</version>
-  <description>Dice spawning and face detection service</description>
-  <maintainer email="cesare.tonola@cnr.it">riemann</maintainer>
+  <description>Dice spawning and face detection service for research</description>
+  <maintainer email="gabriel.novas@aimen.es">Gabriel Novas</maintainer>
   <license>MIT</license>
 
-  <!-- Runtime dependencies -->
+  <!-- Dependencies -->
   <depend>rclpy</depend>
-  <depend>moveit_commander</depend>
   <depend>geometry_msgs</depend>
   <depend>std_msgs</depend>
   <depend>moveit_msgs</depend>
+  <depend>tf2_ros</depend>
   <depend>tf_transformations</depend>
   <depend>drims2_msgs</depend>
+
+  <!-- Python dependencies -->
+  <exec_depend>python3-trimesh</exec_depend>
+  <exec_depend>python3-numpy</exec_depend>
 
   <export>
     <build_type>ament_python</build_type>
