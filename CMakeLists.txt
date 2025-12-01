@@ -18,7 +18,7 @@ find_package(geometry_msgs REQUIRED)
 find_package(std_msgs REQUIRED)
 find_package(moveit_msgs REQUIRED)
 find_package(tf2_ros REQUIRED)
-find_package(tf_transformations REQUIRED)
+find_package(tf2_py REQUIRED)
 
 # Find custom package
 find_package(drims2_msgs REQUIRED)

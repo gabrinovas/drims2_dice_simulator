@@ -1,6 +1,7 @@
 import math
 import os
 import time
+import trimesh
 import random
 import numpy as np
 
@@ -10,9 +11,8 @@ import rclpy
 from rclpy.node import Node
 from rclpy.executors import MultiThreadedExecutor
 from rclpy.callback_groups import ReentrantCallbackGroup
-from geometry_msgs.msg import Pose, PoseStamped, TransformStamped, Point, Vector3
+from geometry_msgs.msg import Pose, PoseStamped, TransformStamped, Point, Vector3, Quaternion
 from tf2_ros import StaticTransformBroadcaster, Buffer, TransformListener
-from tf_transformations import quaternion_from_euler, quaternion_multiply
 from moveit_msgs.srv import ApplyPlanningScene, GetPlanningScene
 from moveit_msgs.msg import PlanningScene, CollisionObject
 from shape_msgs.msg import Mesh, MeshTriangle
@@ -57,7 +57,7 @@ class DiceSpawner(Node):
         self.declare_parameter("dice_size", 0.037)
         self.declare_parameter("position", [0.25, 0.0, 0.80])
         self.declare_parameter("use_sim_time", False)
-        self.declare_parameter("dice_mesh", "simplify_Die-OBJ.obj")  # Nuevo parámetro para elegir mesh
+        self.declare_parameter("dice_mesh", "simplify_Die-OBJ.obj")
 
         # Obtener parámetros
         face_param = self.get_parameter("face_up").value
@@ -142,7 +142,7 @@ class DiceSpawner(Node):
 
         # Publicar TFs estáticos y spawnear dado
         self.publish_all_static_transforms()
-        time.sleep(1.0)  # Esperar a que las TFs se publiquen
+        time.sleep(1.0)
         self.spawn_dice_with_mesh()
         self.dice_face_publisher_.publish(Int16(data=self.face))
         
@@ -178,6 +178,38 @@ class DiceSpawner(Node):
         except Exception as e:
             self.get_logger().warn(f"Exception while getting group_name: {e}. Using 'manipulator' as default.")
             self.group_name = "manipulator"
+
+    def quaternion_from_euler(self, roll, pitch, yaw):
+        """Convert Euler angles to quaternion (replacement for tf_transformations)"""
+        cy = math.cos(yaw * 0.5)
+        sy = math.sin(yaw * 0.5)
+        cp = math.cos(pitch * 0.5)
+        sp = math.sin(pitch * 0.5)
+        cr = math.cos(roll * 0.5)
+        sr = math.sin(roll * 0.5)
+        
+        w = cr * cp * cy + sr * sp * sy
+        x = sr * cp * cy - cr * sp * sy
+        y = cr * sp * cy + sr * cp * sy
+        z = cr * cp * sy - sr * sp * cy
+        
+        return [x, y, z, w]
+
+    def quaternion_multiply(self, q1, q2):
+        """Multiply two quaternions (replacement for tf_transformations)"""
+        w1, x1, y1, z1 = q1[3], q1[0], q1[1], q1[2]
+        w2, x2, y2, z2 = q2[3], q2[0], q2[1], q2[2]
+        
+        w = w1 * w2 - x1 * x2 - y1 * y2 - z1 * z2
+        x = w1 * x2 + x1 * w2 + y1 * z2 - z1 * y2
+        y = w1 * y2 + y1 * w2 + z1 * x2 - x1 * z2
+        z = w1 * z2 + z1 * w2 + x1 * y2 - y1 * x2
+        
+        return [x, y, z, w]
+
+    def quaternion_conjugate(self, q):
+        """Return conjugate of quaternion"""
+        return [-q[0], -q[1], -q[2], q[3]]
 
     def publish_all_static_transforms(self):
         """Publicar todas las transformadas estáticas iniciales del dado"""
@@ -374,7 +406,7 @@ class DiceSpawner(Node):
             mesh_msg = Mesh()
             
             # Escalar el mesh al tamaño del dado
-            scale_factor = self.dice_size / max(mesh.extents)  # Normalizar al tamaño máximo
+            scale_factor = self.dice_size / max(mesh.extents)
             scaled_vertices = mesh.vertices * scale_factor
             
             # Triángulos
@@ -459,7 +491,7 @@ class DiceSpawner(Node):
                 response.success = False
                 return response
 
-            time.sleep(0.5)  # Esperar a que se actualicen las TFs
+            time.sleep(0.5)
 
             now = rclpy.time.Time()
             z_world = np.array([0, 0, 1])
@@ -537,15 +569,15 @@ class DiceSpawner(Node):
     def get_orientation_for_face(self, face):
         """Obtener orientación quaternion para una cara específica hacia arriba"""
         face_to_rpy = {
-            1: (math.pi / 2, 0, 0),
-            2: (0, -math.pi / 2, 0),
-            3: (0, math.pi, 0),
-            4: (0, 0, 0),
-            5: (0, math.pi / 2, 0),
-            6: (-math.pi / 2, 0, 0),
+            1: (math.pi / 2, 0, 0),      # Cara 1 arriba
+            2: (0, -math.pi / 2, 0),     # Cara 2 arriba  
+            3: (0, math.pi, 0),          # Cara 3 arriba
+            4: (0, 0, 0),                # Cara 4 arriba
+            5: (0, math.pi / 2, 0),      # Cara 5 arriba
+            6: (-math.pi / 2, 0, 0),     # Cara 6 arriba
         }
         rpy = face_to_rpy.get(face, (0, 0, 0))
-        return quaternion_from_euler(*rpy)
+        return self.quaternion_from_euler(*rpy)
 
     def get_quaternion_from_normal(self, normal):
         """Obtener quaternion que alinea el eje Z con la normal dada"""
@@ -553,9 +585,11 @@ class DiceSpawner(Node):
         v = np.cross(z_axis, normal)
         c = np.dot(z_axis, normal)
         
+        # Si son paralelos
         if np.linalg.norm(v) < 1e-6:
-            return (0.0, 0.0, 0.0, 1.0) if c > 0 else quaternion_from_euler(math.pi, 0, 0)
+            return (0.0, 0.0, 0.0, 1.0) if c > 0 else self.quaternion_from_euler(math.pi, 0, 0)
         
+        # Fórmula de quaternion desde vector de rotación
         s = math.sqrt((1 + c) * 2)
         vx, vy, vz = v / np.linalg.norm(v)
         return (
@@ -568,8 +602,8 @@ class DiceSpawner(Node):
     def rotate_vector(self, v, q):
         """Rotar un vector por un quaternion"""
         v_q = (v[0], v[1], v[2], 0.0)
-        q_conj = (-q[0], -q[1], -q[2], q[3])
-        result = quaternion_multiply(quaternion_multiply(q, v_q), q_conj)
+        q_conj = self.quaternion_conjugate(q)
+        result = self.quaternion_multiply(self.quaternion_multiply(q, v_q), q_conj)
         return result[:3]
 
     def destroy_node(self):
