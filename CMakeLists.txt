@@ -23,8 +23,17 @@ find_package(tf2_py REQUIRED)
 # Find custom package
 find_package(drims2_msgs REQUIRED)
 
-# Install Python package
+# Instalar el paquete Python
 ament_python_install_package(${PROJECT_NAME})
+
+# Instalar el script como ejecutable
+install(PROGRAMS
+  scripts/dice_spawner.py
+  DESTINATION lib/${PROJECT_NAME}
+)
+
+# Crear un target para colcon
+ament_package()
 
 # Install launch files
 install(DIRECTORY launch
@@ -45,5 +54,3 @@ if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)
   ament_lint_auto_find_test_dependencies()
 endif()
-
-ament_package()

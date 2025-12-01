@@ -7,6 +7,10 @@
   <maintainer email="gabriel.novas@aimen.es">Gabriel Novas</maintainer>
   <license>MIT</license>
 
+  <!-- Dependencies para build -->
+  <buildtool_depend>ament_cmake</buildtool_depend>
+  <buildtool_depend>ament_cmake_python</buildtool_depend>
+
   <!-- Dependencies -->
   <depend>rclpy</depend>
   <depend>geometry_msgs</depend>
@@ -19,6 +23,10 @@
   <!-- Python dependencies -->
   <exec_depend>python3-trimesh</exec_depend>
   <exec_depend>python3-numpy</exec_depend>
+
+  <!-- Test dependencies -->
+  <test_depend>ament_lint_auto</test_depend>
+  <test_depend>ament_lint_common</test_depend>
 
   <export>
     <build_type>ament_cmake</build_type>
