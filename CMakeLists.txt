@@ -23,13 +23,6 @@ find_package(tf2_py REQUIRED)
 # Find custom package
 find_package(drims2_msgs REQUIRED)
 
-# Mover ament_lint_auto ANTES de ament_package()
-if(BUILD_TESTING)
-  find_package(ament_lint_auto REQUIRED)
-  # Opcional: agregar ament_copyright si lo necesitas
-  # find_package(ament_copyright REQUIRED)
-endif()
-
 # Instalar el paquete Python
 ament_python_install_package(${PROJECT_NAME})
 
@@ -54,10 +47,4 @@ install(DIRECTORY urdf
   DESTINATION share/${PROJECT_NAME}
 )
 
-# Llamar ament_lint_auto_find_test_dependencies ANTES de ament_package()
-if(BUILD_TESTING)
-  ament_lint_auto_find_test_dependencies()
-endif()
-
-# Finalmente llamar ament_package()
 ament_package()
